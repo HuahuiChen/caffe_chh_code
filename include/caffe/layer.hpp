@@ -156,6 +156,8 @@ class layer {
   protected:
     LayerParameter layer_param_;
     Phase phase_;
+    // The vector that stores the learnable parameters as a set 
+    // of blobs, like weights, bias
     vector<shared_ptr<Blob<Dtype> > > blobs_;
     vector<bool> param_propagate_down_;
     vector<Dtype> loss_;
