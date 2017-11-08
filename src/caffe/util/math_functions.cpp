@@ -45,8 +45,14 @@ void caffe_cpu_gemv<double>(const CBLAS_TRANSPOSE TransA, const int M,
 
 /// Y = alpha * X + Y
 template <>
-void caffe_axpy(const int N, const float alpha, const float* X, float* Y) {
+void caffe_axpy<float>(const int N, const float alpha, const float* X, float* Y) {
     cblas_saxpy(N, alpha, X, 1, Y, 1);
+}
+
+/// Y = alpha * X + Y
+template <>
+void caffe_axpy<double>(const int N, const double alpha, const double* X, double* Y) {
+    cblas_daxpy(N, alpha, X, 1, Y, 1);
 }
 
 /// Y = alpha * X + beta * Y
@@ -54,6 +60,13 @@ template <>
 void caffe_cpu_axpby<float>(const int N, const float alpha, const float* X, 
     const float beta, float* Y) {
     cblas_saxpby(N, alpha, X, 1, beta, Y, 1);
+}
+
+/// Y = alpha * X + beta * Y
+template <>
+void caffe_cpu_axpby<double>(const int N, const double alpha, const double* X, 
+    const double beta, double* Y) {
+    cblas_daxpby(N, alpha, X, 1, beta, Y, 1);
 }
 
 template <typename Dtype>
@@ -104,7 +117,15 @@ inline void caffe_memset(const size_t N, const int alpha, void* X) {
 
 /// For each value x_i in X, x_i = x_i + alpha
 template <>
-void caffe_add_scalar(const int N, const float alpha, float *X) {
+void caffe_add_scalar<float>(const int N, const float alpha, float *X) {
+    for (int i = 0; i < N; ++i) {
+        Y[i] += alpha;
+    }
+}
+
+/// For each value x_i in X, x_i = x_i + alpha
+template <>
+void caffe_add_scalar<double>(const int N, const double alpha, double *X) {
     for (int i = 0; i < N; ++i) {
         Y[i] += alpha;
     }
@@ -116,10 +137,22 @@ void caffe_scal<float>(const int N, const float alpha, float *X) {
     cblas_sscal(N, alpha, X, 1);
 }
 
+/// For each value x_i in X, x_i = x_i * alpha
+template <>
+void caffe_scal<double>(const int N, const double alpha, double *X) {
+    cblas_dscal(N, alpha, X, 1);
+}
+
 /// For each value y_i in y, y_i = y_i * y_i 
 template <>
 void caffe_sqr<float>(const int N, const float* a , float* y) {
     vsSqr(n, a, y);
+}
+
+/// For each value y_i in y, y_i = y_i * y_i 
+template <>
+void caffe_sqr<double>(const int N, const double* a , double* y) {
+    vdSqr(n, a, y);
 }
 
 /// For each value y_i in y, y_i = a_i + b_i 
@@ -128,10 +161,22 @@ void caffe_add<float>(const int N, const float* a, const float* b, float *y) {
     vsAdd(n, a, b, y);
 }
 
+/// For each value y_i in y, y_i = a_i + b_i 
+template <>
+void caffe_add<double>(const int N, const double* a, const double* b, double *y) {
+    vdAdd(n, a, b, y);
+}
+
 /// For each value y_i in y, y_i = a_i - b_i 
 template <>
 void caffe_sub<float>(const int N, const float* a, const float* b, float *y) {
     vsSub(n, a, b, y);
+}
+
+/// For each value y_i in y, y_i = a_i - b_i 
+template <>
+void caffe_sub<double>(const int N, const double* a, const double* b, double *y) {
+    vdSub(n, a, b, y);
 }
 
 /// For each value y_i in y, y_i = a_i * b_i 
@@ -140,16 +185,34 @@ void caffe_mul<float>(const int N, const float* a, const float* b, float *y) {
     vsMul(n, a, b, y);
 }
 
+/// For each value y_i in y, y_i = a_i * b_i 
+template <>
+void caffe_mul<double>(const int N, const double* a, const double* b, double *y) {
+    vdMul(n, a, b, y);
+}
+
 /// For each value y_i in y, y_i = a_i / b_i 
 template <>
 void caffe_div<float>(const int N, const float* a, const float* b, float *y) {
     vsDiv(n, a, b, y);
 }
 
+/// For each value y_i in y, y_i = a_i / b_i 
+template <>
+void caffe_div<double>(const int N, const double* a, const double* b, double *y) {
+    vdDiv(n, a, b, y);
+}
+
 /// For each value y_i in y, y_i = a_i ^ b 
 template <>
 void caffe_powx<float>(const int N, const float* a, const float b, float *y) {
     vsPowx(n, a, b, y);
+}
+
+/// For each value y_i in y, y_i = a_i ^ b 
+template <>
+void caffe_powx<double>(const int N, const double* a, const double b, double *y) {
+    vdPowx(n, a, b, y);
 }
 
 
@@ -159,13 +222,29 @@ void caffe_exp<float>(const int n, const float* a, float* y) {
 }
 
 template <>
+void caffe_exp<double>(const int n, const double* a, double* y) {
+    vdExp(n, a, y);
+}
+
+
+template <>
 void caffe_log<float>(const int n, const float* a, float* y) {
     vsLn(n, a, y);
 }
 
 template <>
+void caffe_log<double>(const int n, const double* a, double* y) {
+    vdLn(n, a, y);
+}
+
+template <>
 void caffe_abs<float>(const int n, const float* a, float* y) {
     vsAbs(n, a, y);
+}
+
+template <>
+void caffe_abs<double>(const int n, const double* a, double* y) {
+    vdAbs(n, a, y);
 }
 // *************************************
 // ***********Random function***********
@@ -189,171 +268,111 @@ template <typename Dtype>
 void caffe_rng_uniform(const int n, const Dtype a, const Dtype b, Dtype* r){
     CHECK_GE(n, 0);
     CHECK(r);
-//TODO
+    CHECK_LE(a, b);
+    boost::uniform_real<Dtype> random_distribution(a, caffe_nextafter<Dtype>(b));
+    boost::variate_generator<caffe::rng_t*, boost::uniform_real<Dtype> >
+        variate_generator<caffe_rng(), random_distribution);
+    for (int i = 0; i < n; ++i) {
+        r[i] = variate_generator();
+    }    
 }
 
-template <>
-void caffe_rng_gaussian(const int n, const float mu, const float sigma, float* r);
+template void caffe_rng_uniform(const int n, const float a, const float b, float* r);
+template void caffe_rng_uniform(const int n, const double a, const double b, double* r);
 
-template <>
-void caffe_rng_bernoulli(const int n, const float p, int* r);
+template <typename Dtype>
+void caffe_rng_gaussian(const int n, const Dtype mu, const Dtype sigma, Dtype* r) {
+    CHECK_GE(n, 0);
+    CHECK(r);
+    CHECK_GT(sigma, 0);
+    boost::normal_distribution<Dtype> random_distribution(a, sigma);
+    boost::variate_generator<caffe::rng_t*, boost::normal_distribution<Dtype> >
+        variate_generator(caffe_rng(), random_distribution);
+    for (int i = 0; i < n; ++i) {
+        r[i] = variate_generator();
+    }    
+}
 
-template <>
-void caffe_rng_bernoulli(const int n, const float p, unsigned int* r);
+template void caffe_rng_gaussian<float>(const int n, const float mu, const float sigma, float* r); 
+template void caffe_rng_gaussian<double>(const int n, const double mu, const double sigma, float* r); 
+
+template <typename Dtype>
+void caffe_rng_bernoulli(const int n, const Dtype p, int* r) {
+    CHECK_GE(n, 0);
+    CHECK(r);
+    CHECK_GE(p, 0);
+    CHECK_LE(p, 1);
+    boost::bernoulli_distribution<Dtype> random_distribution(p);
+    boost::variate_generator<caffe::rng_t*, boost::bernoulli_distribution<Dtype> >
+        variate_generator(caffe_rng(), random_distribution);
+    for (int i = 0; i < n; ++i) {
+        r[i] = variate_generator();
+    }    
+
+}
+
+template void caffe_rng_bernoulli<float>(const int n, const float p, int* r);
+template void caffe_rng_bernoulli<double>(const int n, const double p, int* r);
+
+template <typename Dtype>
+void caffe_rng_bernoulli(const int n, const Dtype p, unsigned int* r) {
+    CHECK_GE(n, 0);
+    CHECK(r);
+    CHECK_GE(p, 0);
+    CHECK_LE(p, 1);
+    boost::bernoulli_distribution<Dtype> random_distribution(p);
+    boost::variate_generator<caffe::rng_t*, boost::bernoulli_distribution<Dtype> >
+        variate_generator(caffe_rng(), random_distribution);
+    for (int i = 0; i < n; ++i) {
+        r[i] = static_cast<unsigned int>(variate_generator());
+    }    
+}
+template void caffe_rng_bernoulli<float>(const int n, const float p, unsigned int* r); 
+template void caffe_rng_bernoulli<double>(const int n, const double p, unsigned int* r); 
 
 
 // return x .* y
+template <typename Dtype>
+Dtype caffe_cpu_dot<Dtype>(const int n, const Dtype* x, Dtype* y) {
+    return caffe_cpu_strided_dot(n, x, 1, y, 1);
+}
+
+template float caffe_cpu_dot<float>(const int n, const float* x, float* y);
+template double caffe_cpu_dot<double>(const int n, const double* x, double* y);
 template <>
-float caffe_cpu_dot(const int n, const float* x, float* y);
+float caffe_cpu_strided_dot<float>(const int n, const float* x, const int incx,
+    const float* y, const int incy) {
+    return cblas_sdot(n, x, incx, y, incy);
+}
 
 template <>
-float caffe_cpu_strided_dot(const int n, const float* x, const int incx,
-    const float* y, const int incy);
+double caffe_cpu_strided_dot<double>(const int n, const double* x, const int incx,
+    const double* y, const int incy) {
+    return cblas_ddot(n, x, incx, y, incy);
+}
 
 // Return the sum of the absolute values of the elements of vector x
 template <>
-float caffe_cpu_asum(const int n, const float* x);
-
-template <>
-inline int8_t caffe_sign(float val) {
-    return (float(0) < val) - (val < float(0));
+float caffe_cpu_asum<float>(const int n, const float* x) {
+    return cblas_sasum(n, x, 1);
 }
 
-#define DEFINE_CAFFE_CPU_UNARY_FUNC(name, operation) \
-    template <> \
-    void caffe_cpu_##name(const int n, const float* x, float* y) { \
-        CHECK_GT(n, 0); CHECK(x); CHECK(y); \
-        for (int i = 0; i < n; ++i) { \
-            operation; \
-        } \
-    } 
-
-DEFINE_CAFFE_CPU_UNARY_FUNC(sign, y[i] = caffe_sign<float>(x[i]));    
-
-DEFINE_CAFFE_CPU_UNARY_FUNC(sgnbit, \
-    y[i] = static_cast<bool>((std::signbit)(x[i])));
-
-DEFINE_CAFFE_CPU_UNARY_FUNC(fabs, y[i] = std::fabs(x[i]));
-
 template <>
-void caffe_cpu_scale(const int n, const float alpha, const float *x, float* y);
-
-
-#ifndef CPU_ONLY
-
-/// C = alpha * A * B + beta * C
-template <>
-void caffe_gpu_gemm(const CBLAS_TRANSPOSE TransA, const CBLAS_TRANSPOSE TransB,
-    const int M, const int N, const int K, const float alpha, const float* A,
-    const float* B, const float beta, float* C);
-
-/// y = alpha * A * x + beta * y
-template <>
-void caffe_gpu_gemv(const CBLAS_TRANSPOSE TransA, const int M, const int N,
-    const float alpha, const float* A, const float* x, const float beta, float* y);
-
-/// Y = alpha * X + Y
-template <>
-void caffe_gpu_axpy(const int N, const float alpha, const float* X, float* Y);
-
-/// Y = alpha * X + beta * Y
-template <>
-void caffe_gpu_axpby(const int N, const float alpha, const float* X, 
-    const float beta, float* Y);
-
-/// Y = X
-template <>
-void caffe_gpu_memcpy(const size_t N, const void* X, void* Y);
-    
-/// X = alpha. NxN size
-template <>
-void caffe_gpu_set(const int N, const float alpha, float* X);
-
-/// What's difference between caffe_set and caffe_memset ?
-inline void caffe_memset(const size_t N, const int alpha, void* X) {
-#ifndef CPU_ONLY 
-    CUDA_CHECK(cudaMemset(X, alpha, N));
-#else 
-    NO_GPU;
-#endif
+double caffe_cpu_asum<double>(const int n, const double* x) {
+    return cblas_dasum(n, x, 1);
 }
 
-/// For each value x_i in X, x_i = x_i + alpha
-template <>
-void caffe_gpu_add_scalar(const int N, const float alpha, float *X);
-
-/// For each value x_i in X, x_i = x_i * alpha
-template <>
-void caffe_gpu_scal(const int N, const float alpha, float *X);
-
-/// For each value y_i in y, y_i = y_i * y_i 
-template <>
-void caffe_gpu_sqr(const int N, const float* a , float* y);
-
-/// For each value y_i in y, y_i = a_i + b_i 
-template <>
-void caffe_gpu_add(const int N, const float* a, const float* b, float *y);
-
-/// For each value y_i in y, y_i = a_i - b_i 
-template <>
-void caffe_gpu_sub(const int N, const float* a, const float* b, float *y);
-
-/// For each value y_i in y, y_i = a_i * b_i 
-template <>
-void caffe_gpu_mul(const int N, const float* a, const float* b, float *y);
-
-/// For each value y_i in y, y_i = a_i / b_i 
-template <>
-void caffe_gpu_div(const int N, const float* a, const float* b, float *y);
-
-/// For each value y_i in y, y_i = a_i ^ b 
-template <>
-void caffe_gpu_powx(const int N, const float* a, const float b, float *y);
-
-
-// *************************************
-// ***********Random function***********
-// *************************************
-
-unsigned int caffe_gpu_rng_rand();
-
 
 template <>
-void caffe_gpu_rng_uniform(const int n, const float a, const float b, float* r);
+void caffe_cpu_scale<float>(const int n, const float alpha, const float *x, float* y) {
+    cblas_scopy(n, x, 1, y, 1);
+    cblas_sscal(n, alpha, y, 1);
+}
 
 template <>
-void caffe_gpu_rng_gaussian(const int n, const float mu, const float sigma, float* r);
-
-template <>
-void caffe_gpu_rng_bernoulli(const int n, const float p, int* r);
-
-template <>
-void caffe_gpu_rng_bernoulli(const int n, const float p, unsigned int* r);
-
-template <>
-void caffe_gpu_exp(const int n, const float* a, float* y);
-
-template <>
-void caffe_gpu_log(const int n, const float* a, float* y);
-
-template <>
-void caffe_gpu_abs(const int n, const float* a, float* y);
-
-// y = sum(|x_i|)
-template <>
-void caffe_gpu_asum(const int n, const float* x, float* y);
-
-template <>
-void caffe_gpu_sign(const int n, const float* x, float* y);
-
-
-template <>
-void caffe_gpu_sgnbit(const int n, const float* x, float* y);
-
-template <>
-void caffe_gpu_fabs(const int n, const float* x, float* y);
-
-template <>
-void caffe_gpu_scale(const int n, const float alpha, const float* x, float* y);
+void caffe_cpu_scale<double>(const int n, const double alpha, const double *x, double* y) {
+    cblas_dcopy(n, x, 1, y, 1);
+    cblas_dscal(n, alpha, y, 1);
+}
 
 } // namespace caffe
